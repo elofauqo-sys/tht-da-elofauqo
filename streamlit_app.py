@@ -1,151 +1,163 @@
 import streamlit as st
 import pandas as pd
-import math
-from pathlib import Path
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-# Set the title and favicon that appear in the Browser's tab bar.
-st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
-)
+# Judul aplikasi
+st.title("🚖 Sigma Cabs Dataset Viewer")
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+# Deskripsi singkat
+st.markdown("""
+Dataset **Sigma Cabs** berisi informasi terkait perjalanan pelanggan taksi daring, 
+mulai dari jarak perjalanan, tipe taksi, lama menjadi pelanggan, hingga pola gaya hidup.  
+Data ini digunakan untuk menganalisis faktor-faktor yang memengaruhi **terjadinya surge pricing (kenaikan harga taksi)**.
+""")
 
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+# Baca dataset
+df = pd.read_csv("data/sigma_cabs_clean.csv")
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
+# Tampilkan dataframe
+st.subheader("📊 Preview Dataset Sigma Cabs (5 Baris Pertama)")
+st.dataframe(df.head(), use_container_width=True)
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
-
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
-
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
-
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
-
-    return gdp_df
-
-gdp_df = get_gdp_data()
-
-# -----------------------------------------------------------------------------
-# Draw the actual page
-
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
-
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
-
-# Add some spacing
-''
-''
-
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
+# Info singkat dataset
+st.markdown(f"""
+**Jumlah Baris:** {df.shape[0]}  
+**Jumlah Kolom:** {df.shape[1]}
+""")
 
 
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
+#  Statistik Deskriptif
+st.subheader("📈 Statistik Deskriptif")
+st.write(df.describe())
 
-st.header(f'GDP in {to_year}', divider='gray')
+# Distribusi Data Numerik
+st.subheader("📊 Distribusi Fitur Numerik")
+num_cols = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
 
-''
+selected_num = st.selectbox("Pilih kolom numerik:", num_cols)
+fig, ax = plt.subplots()
+sns.histplot(df[selected_num], kde=True, ax=ax)
+ax.set_title(f"Distribusi dari {selected_num}")
+st.pyplot(fig)
 
-cols = st.columns(4)
+#  Distribusi Data Kategorikal
+st.subheader("🧩 Distribusi Fitur Kategorikal")
+cat_cols = df.select_dtypes(include=['object']).columns.tolist()
 
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
+if len(cat_cols) > 0:
+    selected_cat = st.selectbox("Pilih kolom kategorikal:", cat_cols)
+    fig, ax = plt.subplots()
+    sns.countplot(x=df[selected_cat], palette="Set2", ax=ax)
+    ax.set_title(f"Distribusi dari {selected_cat}")
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
+else:
+    st.info("Tidak ada kolom kategorikal di dataset.")
 
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
 
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
+# Korelasi antar Fitur Numerik
+st.subheader("🔗 Korelasi Antar Fitur Numerik")
+fig, ax = plt.subplots(figsize=(8, 6))
+sns.heatmap(df[num_cols].corr(), annot=True, cmap="Blues", ax=ax)
+st.pyplot(fig)
 
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+# ===============================
+# 📊 EDA: Faktor yang Mempengaruhi Surge Pricing
+# ===============================
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import streamlit as st
+
+st.header("🚕 Analisis Faktor yang Mempengaruhi Surge Pricing")
+
+# Pastikan dataset sudah dibaca sebelumnya sebagai df
+if 'df' in locals() or 'df' in globals():
+    st.subheader("📈 Distribusi Tipe Surge Pricing")
+    fig, ax = plt.subplots(figsize=(6,4))
+    sns.countplot(data=df, x='Surge_Pricing_Type', palette='viridis', ax=ax)
+    plt.title("Distribusi Kenaikan Harga (Surge Pricing)")
+    st.pyplot(fig)
+
+    # 1️⃣ Jarak perjalanan vs surge pricing
+    st.subheader("📏 Hubungan Trip Distance dengan Surge Pricing")
+    fig, ax = plt.subplots(figsize=(7,4))
+    sns.boxplot(data=df, x='Surge_Pricing_Type', y='Trip_Distance', palette='Blues', ax=ax)
+    plt.title("Trip Distance berdasarkan Surge Pricing")
+    st.pyplot(fig)
+
+    # 2️⃣ Jenis taksi vs surge pricing
+    st.subheader("🚖 Jenis Taksi dan Surge Pricing")
+    fig, ax = plt.subplots(figsize=(7,4))
+    sns.barplot(data=df, x='Type_of_Cab', y='Surge_Pricing_Type', estimator='mean', palette='Oranges', ax=ax)
+    plt.title("Rata-rata Surge Pricing berdasarkan Jenis Taksi")
+    st.pyplot(fig)
+
+    # 3️⃣ Lokasi tujuan vs surge pricing
+    st.subheader("📍 Lokasi Tujuan dan Surge Pricing")
+    if 'Destination_Type' in df.columns:
+        fig, ax = plt.subplots(figsize=(7,4))
+        sns.barplot(data=df, x='Destination_Type', y='Surge_Pricing_Type', estimator='mean', palette='coolwarm', ax=ax)
+        plt.title("Rata-rata Surge Pricing berdasarkan Lokasi Tujuan")
+        st.pyplot(fig)
+    else:
+        st.warning("Kolom 'Destination_Type' tidak ditemukan di dataset.")
+
+    # 4️⃣ Pembatalan dan surge pricing
+    st.subheader("❌ Pembatalan Pesanan dan Surge Pricing")
+    if 'Cancellation_Last_1Month' in df.columns:
+        fig, ax = plt.subplots(figsize=(7,4))
+        sns.scatterplot(data=df, x='Cancellation_Last_1Month', y='Surge_Pricing_Type', color='red', ax=ax)
+        plt.title("Hubungan Pembatalan dengan Surge Pricing")
+        st.pyplot(fig)
+    else:
+        st.warning("Kolom 'Cancellation_Last_1Month' tidak ditemukan di dataset.")
+else:
+    st.warning("⚠️ Dataset belum dimuat. Pastikan file 'sigma_cabs_clean.csv' sudah diunggah dan dibaca terlebih dahulu.")
+
+    # ===============================
+# 🚕 Analisis Hubungan Trip Distance dengan Surge Pricing
+# ===============================
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import streamlit as st
+import pandas as pd
+
+st.header("📏 Hubungan antara Jarak Perjalanan (Trip Distance) dan Tipe Surge Pricing")
+
+# Pastikan dataset sudah dimuat
+if 'df' in locals() or 'df' in globals():
+    # --- Statistik ringkas
+    st.subheader("📊 Statistik Ringkas")
+    st.write(df[['Trip_Distance', 'Surge_Pricing_Type']].describe())
+
+    # --- Distribusi jarak per surge pricing
+    st.subheader("🎯 Distribusi Trip Distance per Tipe Surge Pricing")
+    fig, ax = plt.subplots(figsize=(8,5))
+    sns.boxplot(data=df, x='Surge_Pricing_Type', y='Trip_Distance', palette='viridis', ax=ax)
+    plt.title("Distribusi Jarak Perjalanan Berdasarkan Tipe Surge Pricing")
+    plt.xlabel("Tipe Surge Pricing")
+    plt.ylabel("Jarak Perjalanan (km)")
+    st.pyplot(fig)
+
+    # --- Scatter plot untuk melihat pola
+    st.subheader("💡 Pola Jarak vs Tipe Surge Pricing")
+    fig, ax = plt.subplots(figsize=(8,5))
+    sns.stripplot(data=df, x='Surge_Pricing_Type', y='Trip_Distance', jitter=True, alpha=0.6, palette='cool', ax=ax)
+    plt.title("Sebaran Data Trip Distance pada Tiap Tipe Surge Pricing")
+    plt.xlabel("Tipe Surge Pricing")
+    plt.ylabel("Jarak Perjalanan (km)")
+    st.pyplot(fig)
+
+    # --- Insight
+    st.markdown("""
+    ### ✨ Insight:
+    - Terlihat bahwa **semakin panjang jarak perjalanan**, kecenderungan untuk mengalami **surge pricing** cenderung meningkat.
+    - Tipe surge pricing yang lebih tinggi biasanya memiliki **median trip distance yang lebih besar**.
+    - Artinya, jarak perjalanan menjadi salah satu faktor penting dalam memengaruhi kenaikan harga.
+    """)
+else:
+    st.warning("⚠️ Dataset belum dimuat. Pastikan file `sigma_cabs_clean.csv` sudah diunggah dan dibaca terlebih dahulu.")
+
