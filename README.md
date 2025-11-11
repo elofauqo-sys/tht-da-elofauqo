@@ -1,7 +1,7 @@
 # 🚖 Sigma Cabs Dataset Viewer
 <img src = "https://c.pxhere.com/photos/71/59/photo-422905.jpg!d">
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)]([https://finpro-elofauq0.streamlit.app/](https://fictional-capybara-v67wwj99jrvq2666-8501.app.github.dev/))
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://fictional-capybara-v67wwj99jrvq2666-8501.app.github.dev/)
 
 ## 📌 Project Overview
 
