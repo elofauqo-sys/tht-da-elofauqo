@@ -47,17 +47,22 @@ Beberapa langkah awal yang dilakukan:
 ## 📊 Exploratory Data Analysis (EDA)
 
 Analisis dilakukan untuk menjawab beberapa pertanyaan utama:
+
 1️⃣ Faktor apa saja yang memengaruhi surge pricing?
 Korelasi menunjukkan beberapa faktor penting:
 - Trip Distance (0.28) → Semakin jauh jarak perjalanan, peluang surge pricing meningkat.
 - Cancellation_Last_1Month (0.19) → Pelanggan dengan pembatalan tinggi cenderung mengalami harga lebih tinggi.
 - Customer_Rating (-0.14) → Rating rendah sedikit berhubungan dengan harga lebih tinggi.
+  
 2️⃣ Bagaimana hubungan antara jarak perjalanan dengan surge pricing?
 - Visualisasi boxplot menunjukkan tren kenaikan surge pricing seiring peningkatan jarak perjalanan.
+  
 3️⃣ Apakah jenis taksi tertentu lebih sering mengalami surge pricing?
 - Jenis taksi Type D dan E menunjukkan rata-rata surge pricing lebih tinggi dibandingkan lainnya — kemungkinan karena segmentasi premium atau permintaan tinggi.
+  
 4️⃣ Apakah lokasi pelanggan (Destination Type) memengaruhi surge pricing?
 - Ya — beberapa destination type (seperti D, G, H) cenderung mengalami surge lebih sering, mengindikasikan permintaan tinggi pada area tersebut.
+  
 5️⃣ Apakah pembatalan pesanan berpengaruh terhadap surge pricing?
 - Pelanggan dengan frekuensi pembatalan tinggi dalam 1 bulan terakhir lebih mungkin terkena kenaikan harga dinamis.
 
